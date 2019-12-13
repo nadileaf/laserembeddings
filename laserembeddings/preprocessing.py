@@ -15,6 +15,9 @@ __all__ = ['Tokenizer', 'BPE']
 ###############################################################################
 
 
+import jieba
+jieba.initialize()
+
 class Tokenizer:
     """
     Tokenizer.
@@ -36,24 +39,24 @@ class Tokenizer:
                  descape: bool = False):
         assert lower_case, 'lower case is needed by all the models'
 
+        self.lower_case = lower_case
+
         if lang in ('cmn', 'wuu', 'yue'):
             lang = 'zh'
-        if lang == 'jpn':
-            lang = 'ja'
-
         if lang == 'zh':
-            raise NotImplementedError('jieba is not yet implemented')
-        if lang == 'ja':
-            raise NotImplementedError('mecab is not yet implemented')
-        if romanize:
-            raise NotImplementedError('romanize is not yet implemented')
+            pass
+        else:
+            if lang == 'ja':
+                raise NotImplementedError('mecab is not yet implemented')
+            if romanize:
+                raise NotImplementedError('romanize is not yet implemented')
 
-        self.lower_case = lower_case
-        self.romanize = romanize
-        self.descape = descape
+            self.romanize = romanize
+            self.descape = descape
 
-        self.normalizer = MosesPunctNormalizer(lang=lang)
-        self.tokenizer = MosesTokenizer(lang=lang)
+            self.normalizer = MosesPunctNormalizer(lang=lang)
+            self.tokenizer = MosesTokenizer(lang=lang)
+        self.lang = lang
 
     def tokenize(self, text: str) -> str:
         """Tokenizes a text and returns the tokens as a string"""
@@ -63,20 +66,22 @@ class Tokenizer:
         # REM_NON_PRINT_CHAR
         # not implemented
 
-        # NORM_PUNC
-        text = self.normalizer.normalize(text)
-
-        # DESCAPE
-        if self.descape:
-            text = xml_unescape(text)
-
         # MOSES_TOKENIZER
 
         # see: https://github.com/facebookresearch/LASER/issues/55#issuecomment-480881573
-        text = self.tokenizer.tokenize(text,
-                                       return_str=True,
-                                       escape=False,
-                                       aggressive_dash_splits=False)
+        if self.lang == 'zh':
+            text = ' '.join(jieba.cut(text))
+        else:
+            # NORM_PUNC
+            text = self.normalizer.normalize(text)
+
+            # DESCAPE
+            if self.descape:
+                text = xml_unescape(text)
+            text = self.tokenizer.tokenize(text,
+                                           return_str=True,
+                                           escape=False,
+                                           aggressive_dash_splits=False)
 
         # jieba
         # MECAB
